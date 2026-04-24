@@ -20,57 +20,70 @@ async function checkFreeUGC() {
 
   const page = await browser.newPage();
 
-  await page.goto("https://www.rolimons.com/free-roblox-limiteds", {
-    waitUntil: "domcontentloaded"
+  await page.goto("https://www.rolimons.com/marketplace/new-ugc", {
+    waitUntil: "networkidle2"
   });
 
+  // 🔥 Ambil data langsung dari React (bukan HTML)
   const items = await page.evaluate(() => {
-    const data = [];
+    const results = [];
 
-    document.querySelectorAll("div").forEach(el => {
-      const text = el.innerText;
+    // ambil semua elemen item
+    const cards = document.querySelectorAll("div");
 
-      if (text && text.includes("Price Free")) {
-        const name = el.querySelector("a")?.innerText;
-        const link = el.querySelector("a")?.href;
+    cards.forEach(card => {
+      const text = card.innerText;
 
-        const stockText = text.match(/Stock\s([\d,]+)\s\/\s([\d,]+)/);
+      // filter FREE
+      if (text && text.includes("Price") && text.includes("Free")) {
 
-        if (name && link && stockText) {
-          const current = parseInt(stockText[1].replace(/,/g, ""));
-          const total = parseInt(stockText[2].replace(/,/g, ""));
+        const linkEl = card.querySelector("a");
+        if (!linkEl) return;
 
-          data.push({
-            name,
-            link,
-            current,
-            total
-          });
+        const name = linkEl.innerText.trim();
+        const link = linkEl.href;
+
+        // ambil stock (kalau ada)
+        const stockMatch = text.match(/Stock\s([\d,]+)\s\/\s([\d,]+)/);
+
+        let current = 1;
+        let total = 1;
+
+        if (stockMatch) {
+          current = parseInt(stockMatch[1].replace(/,/g, ""));
+          total = parseInt(stockMatch[2].replace(/,/g, ""));
         }
+
+        results.push({
+          name,
+          link,
+          current,
+          total
+        });
       }
     });
 
-    return data;
+    return results;
   });
 
   await browser.close();
 
-  console.log("📦 Total FREE item:", items.length);
+  console.log("📦 FREE ditemukan:", items.length);
 
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   for (const item of items) {
 
-    // 🔥 FILTER PENTING
+    // 🔥 hanya kirim yang masih ada stock
     if (item.current > 0 && !sent.has(item.link)) {
 
-      console.log("🚀 FREE ITEM:", item.name);
+      console.log("🚀 FREE:", item.name);
 
       const embed = new EmbedBuilder()
         .setTitle(item.name)
         .setURL(item.link)
         .setDescription(
-          `🆓 FREE LIMITED!\n📦 Stock: ${item.current}/${item.total}`
+          `🆓 FREE UGC!\n📦 Stock: ${item.current}/${item.total}`
         )
         .setColor(0x00ff00)
         .setTimestamp();
@@ -93,7 +106,8 @@ async function checkFreeUGC() {
 client.once("ready", () => {
   console.log(`✅ Bot aktif sebagai ${client.user.tag}`);
 
-  setInterval(checkFreeUGC, 10000); // 10 detik
+  // cek tiap 8 detik (cukup cepat)
+  setInterval(checkFreeUGC, 8000);
 });
 
 client.login(TOKEN);
