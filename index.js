@@ -37,7 +37,7 @@ async function checkUGC() {
         const channel = client.channels.cache.get(process.env.CHANNEL_ID);
         if (channel) {
           channel.send({
-            content: "@everyone 🚨 FREE ITEM!",
+            content: "🚨 FREE ITEM!",
             embeds: [embed]
           });
         }
@@ -49,7 +49,7 @@ async function checkUGC() {
   }
 }
 
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`✅ Bot login sebagai ${client.user.tag}`);
 
   checkUGC();
